@@ -17,7 +17,7 @@ class TokenStream(private val stringStream: StringStream) {
 
     companion object {
         private val CommentHeads: CharArray = charArrayOf('!')
-        private val StringQuotes: CharArray = charArrayOf('"', '\'')
+        private val StringQuotes: CharArray = charArrayOf('\"', '\'')
         private val Identifiers: CharArray = ArrayList<Char>().apply {
             add('_')
             add('-')
@@ -39,11 +39,13 @@ class TokenStream(private val stringStream: StringStream) {
     }
 
     /*
-    |    type    |    value    |
-    |------------|-------------|
-    | symbol     |      "=<>/! |
-    | identifier | a-zA-Z0-9_- |
-    | string     |           * |
+    |    type    |     value     |
+    |------------|---------------|
+    | symbol     |          =<>/ |
+    | comment    |            !* |
+    | string     |           "*" |
+    | identifier |  a-zA-Z0-9_-: |
+    | text       |             * |
 
     - skip whitespace;
     - if input.eof() returns true, end;
@@ -72,10 +74,8 @@ class TokenStream(private val stringStream: StringStream) {
     }
 
     private fun readNext(): HToken {
-        if (eof()) croak("EOF")
-
         readWhile(Companion::isWhitespace)
-        if (eof()) return HToken(HTokenType.EOF, "")
+        if (stringStream.eof()) return HToken(HTokenType.EOF, "")
 
         val char = stringStream.peek()
 
@@ -91,14 +91,19 @@ class TokenStream(private val stringStream: StringStream) {
             }
 
         if (token.value == "<") textMayOccur = false
-        else if (token.value == ">") textMayOccur = true
+        if (token.value == ">") textMayOccur = true
 
         return token
     }
 
+    private fun readTo(endIndex: Int): String {
+        val builder = StringBuilder()
+        while (stringStream.pointer < endIndex) builder.append(stringStream.next())
+        return builder.toString()
+    }
     private fun readWhile(predictor: (Char) -> Boolean): String {
         val builder = StringBuilder()
-        while (!eof() && predictor(stringStream.peek())) builder.append(stringStream.next())
+        while (!stringStream.eof() && predictor(stringStream.peek())) builder.append(stringStream.next())
         return builder.toString()
     }
     private fun readUntil(end: Char): String {
@@ -164,20 +169,19 @@ class TokenStream(private val stringStream: StringStream) {
 
         while (true) {
             // NOTE: Find a better way
-            stringStream.mark()
-            val text0 = readUntil('<').also { stringStream.reset() }
-            val text1 = readUntil('\"').also { stringStream.reset() }
-            val text2 = readUntil('\'').also { stringStream.reset() }
+            val index0 = stringStream.nextIndexOf("</")
+            val index1 = stringStream.nextIndexOf('\"')
+            val index2 = stringStream.nextIndexOf('\'')
 
-            val index = if (text0.length < text1.length && text0.length < text2.length) 0 else if (text1.length < text2.length) 1 else 2
-            if (index != 0) {
-                val text = if (index == 1) text1 else text2
-                val quote = if (index == 1) '\"' else '\''
+            val index = index0.coerceAtMost(index1).coerceAtMost(index2)
+            if (index != index0) {
+                val quote = if (index == index1) '\"' else '\''
+
+                val text = readTo(index)
                 val string = takeString(quote).value // Take will update stream
                 builder.append(text).append(quote).append(string).append(quote)
             } else {
-                builder.append(text0)
-                readUntil('<') // Manually update stream
+                builder.append(readTo(index))
                 break
             }
         }

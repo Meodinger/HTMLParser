@@ -18,5 +18,7 @@ fun main() {
     val startTime = Date().time
     val list = tokenize(connection.inputStream.reader(StandardCharsets.UTF_8).readText())
     val endTime = Date().time
+    println(list)
+    println(list.size)
     println(endTime - startTime)
 }

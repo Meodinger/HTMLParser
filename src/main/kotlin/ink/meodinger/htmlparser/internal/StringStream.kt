@@ -11,10 +11,11 @@ package ink.meodinger.htmlparser.internal
  */
 class StringStream(string: String) {
 
-    private val array: CharArray = string.toCharArray()
-    private val size = array.size
+    val array: CharArray = string.toCharArray()
+    val size = array.size
 
-    private var pointer: Int = 0
+    var pointer: Int = 0
+        private set
     private var row: Int = 1
     private var col: Int = 1
 
@@ -60,6 +61,41 @@ class StringStream(string: String) {
         pointer = markP
         row = markR
         col = markC
+    }
+
+    /**
+     * Return this::count if not found
+     */
+    fun nextIndexOf(char: Char, from: Int = pointer): Int {
+        var index = from
+        while (index < size && array[index] != char) index++
+        return index
+    }
+
+    /**
+     * Return this::count if not found
+     */
+    fun nextIndexOf(string: String, from: Int = pointer): Int {
+        val charArray = string.toCharArray()
+        val count = charArray.size
+        val head = charArray[0]
+        var index = from
+
+        outer@ while (index < size) {
+            index = nextIndexOf(head, index)
+            if (index + count > size) return size
+
+            var i = -1
+            while (++i < count) {
+                if (array[index + i] != charArray[i]) {
+                    index += count
+                    continue@outer
+                }
+            }
+            return index
+        }
+
+        return size
     }
 
 }
