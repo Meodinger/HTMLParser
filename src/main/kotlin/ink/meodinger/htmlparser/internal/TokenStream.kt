@@ -65,6 +65,7 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
     private var current: Token? = null
     private var textMayOccur: Boolean = false
     private var inScript: Boolean = false
+    private var inStyle: Boolean = false
 
     private var marked: Boolean = false
     private var markCurrent: Token? = null
@@ -126,29 +127,29 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
         val char = stringStream.peek()
 
         val token: Token =
-            if (isSymbol(char)) {
-                if (textMayOccur && inScript && char == '/') {
-                    // Script starts with comment
-                    takeText()
-                } else {
-                    takeSymbol()
-                }
+            if (textMayOccur && (inScript && (char == '/' || char == '!'))) {
+                takeText()
+            } else if (isSymbol(char)) {
+                if (char == '<') textMayOccur = false
+                if (char == '>') textMayOccur = true
+                takeSymbol()
             } else if (isCommentStart(char)) {
                 takeComment()
             } else if (isStringStart(char)) {
                 takeString(char)
-            } else if (textMayOccur) {
-                takeText()
             } else {
-                if (isIdentifierStart(char)) takeIdentifier()
-                else croak("Unknown char: `$char`")
+                if (textMayOccur) {
+                    takeText()
+                } else if (isIdentifierStart(char)) {
+                    takeIdentifier()
+                } else croak("Unknown char: `$char`")
             }
 
-        if (token.value == "<") textMayOccur = false
-        if (token.value == ">") textMayOccur = true
-
         if (token.type == TokenType.IDENTIFIER && token.value == "script") inScript = true
-        if (inScript && token.type == TokenType.SYMBOL && token.value == "/") inScript = false
+        else if (inScript && token.type == TokenType.SYMBOL && token.value == "/") inScript = false
+
+        if (token.type == TokenType.IDENTIFIER && token.value == "style" && stringStream.peek() != '=') inStyle = true
+        else if (inStyle && token.type == TokenType.SYMBOL && token.value == "/") inStyle = false
 
         return token
     }
@@ -161,17 +162,6 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
     private fun readWhile(predictor: (Char) -> Boolean): String {
         val builder = StringBuilder()
         while (!stringStream.eof() && predictor(stringStream.peek())) builder.append(stringStream.next())
-        return builder.toString()
-    }
-    private fun readUntil(end: Char): String {
-        val builder = StringBuilder()
-        while (!stringStream.eof()) {
-            if (stringStream.peek() == end) {
-                break
-            } else {
-                builder.append(stringStream.next())
-            }
-        }
         return builder.toString()
     }
     private fun readString(quote: Char): String {
@@ -219,7 +209,7 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
         } else {
             return Token(
                 TokenType.COMMENT,
-                readUntil('>')
+                readWhile { it != '>' }
             )
         }
     }
@@ -238,7 +228,7 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
     }
     private fun takeText(): Token {
         val builder = StringBuilder()
-        val endMark = if (inScript) "</" else "<"
+        val endMark = if (inScript || inStyle) "</" else "<"
 
         while (true) {
             // NOTE: Find a better way

@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 import javax.net.ssl.HttpsURLConnection
 
+
 /**
  * Author: Meodinger
  * Date: 2022/1/17
@@ -23,7 +24,6 @@ fun main() {
     while (!tokenStream.eof()) list.add(tokenStream.next())
     val endTime = Date().time
 
-    println(list)
     println(list.size)
     println(endTime - startTime)
 }

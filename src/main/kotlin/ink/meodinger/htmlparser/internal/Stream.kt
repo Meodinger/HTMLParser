@@ -8,7 +8,6 @@ package ink.meodinger.htmlparser.internal
 interface Stream<out E> {
 
     fun next(): E
-
     fun peek(): E
 
     fun eof(): Boolean
@@ -16,9 +15,7 @@ interface Stream<out E> {
     fun croak(message: String): Nothing
 
     fun mark()
-
     fun reset()
-
     fun unmarked()
 
 }

@@ -1,10 +1,12 @@
 package ink.meodinger.htmlparser.parser
 
+import ink.meodinger.htmlparser.HNode
+import ink.meodinger.htmlparser.HPage
 import ink.meodinger.htmlparser.internal.StringStream
 import ink.meodinger.htmlparser.internal.TokenStream
 import ink.meodinger.htmlparser.internal.TokenStream.Token
 import ink.meodinger.htmlparser.internal.TokenStream.TokenType
-import ink.meodinger.htmlparser.type.*
+
 
 /**
  * Author: Meodinger
@@ -27,7 +29,7 @@ fun parse(htmlText: String): HPage {
     fun Token.except(type: TokenType, value: String): Token {
         return also {
             if(it.type != type || it.value != value)
-                tokenStream.croak("Except $type:($value), got ${it.type}:(${it.value})")
+                tokenStream.croak("Except $type:$value, got ${it.type}:${it.value}")
         }
     }
 
@@ -38,7 +40,7 @@ fun parse(htmlText: String): HPage {
 
         // Check if is comment
         if (tokenStream.peek().isComment()) {
-            val comment = HComment(tokenStream.next().value)
+            val comment = HNode.HComment(tokenStream.next().value)
             tokenStream.next().except(TokenType.SYMBOL, ">")
             return comment
         }
@@ -46,6 +48,8 @@ fun parse(htmlText: String): HPage {
         // Read tag name
         val name = tokenStream.next().except(TokenType.IDENTIFIER).value
         val isSingleTag = SingleTagList.contains(name)
+
+        if (name == "tbody") println("!")
 
         var nextToken: Token
 
@@ -76,12 +80,11 @@ fun parse(htmlText: String): HPage {
                     else -> tokenStream.croak("Expected String or Identifier, got $valueToken")
                 }
                 attributes[attr] = value
-                nextToken = tokenStream.peek()
             } else {
                 // this attribute is a standalone attribute
                 attributes[attr] = ""
-                nextToken = next
             }
+            nextToken = tokenStream.peek()
         }
 
         if (isSingleTag) {
@@ -118,14 +121,16 @@ fun parse(htmlText: String): HPage {
         while (true) {
             if (nextToken.isTagTailStart()) {
                 if (tokenStream.peek(2).isSymbolSlash()) {
+                    // The end tag
                     break
                 } else {
                     val node = parseNode()
                     if (node.isEOF()) break
                     children.add(node)
                 }
-            } else if (nextToken.isText()) children.add(HText(tokenStream.next().value))
-            else tokenStream.croak("Unexpected token: $nextToken")
+            } else if (nextToken.isText()) {
+                children.add(HNode.HText(tokenStream.next().value))
+            } else tokenStream.croak("Unexpected token: $nextToken")
 
             nextToken = tokenStream.peek()
         }
@@ -144,9 +149,7 @@ fun parse(htmlText: String): HPage {
     val type = HPage.HType.of(tokenStream.next().except(TokenType.COMMENT).value.split(" ")[1])
     tokenStream.next().except(TokenType.SYMBOL, ">")
 
-    return HPage(type).apply {
-        children.add(parseNode()) // html
-    }
+    return HPage(parseNode(), type)
 }
 
 private val SingleTagList: Array<String> = arrayOf(
@@ -157,20 +160,18 @@ private val SingleTagList: Array<String> = arrayOf(
     "path"
 )
 
-private fun Token.isAttributeAssign(): Boolean = isSymbol() && (value == "=")
-
-private fun Token.isTagHeadStart(): Boolean = isSymbol() && (value == "<")
-private fun Token.isTagHeadEnd(): Boolean = isSymbol() && (value == ">")
-private fun Token.isTagTailStart(): Boolean = isTagHeadStart()
-private fun Token.isTagTailEnd(): Boolean = isTagHeadEnd()
-
-private fun Token.isSymbolSlash(): Boolean = isSymbol() && (value == "/")
-
 private fun Token.isEOF(): Boolean = type == TokenType.EOF
 private fun Token.isText(): Boolean = type == TokenType.TEXT
 private fun Token.isSymbol(): Boolean = type == TokenType.SYMBOL
 private fun Token.isString(): Boolean = type == TokenType.STRING
 private fun Token.isComment(): Boolean = type == TokenType.COMMENT
 private fun Token.isIdentifier(): Boolean = type == TokenType.IDENTIFIER
+
+private fun Token.isAttributeAssign(): Boolean = isSymbol() && (value == "=")
+private fun Token.isSymbolSlash(): Boolean = isSymbol() && (value == "/")
+private fun Token.isTagHeadStart(): Boolean = isSymbol() && (value == "<")
+private fun Token.isTagHeadEnd(): Boolean = isSymbol() && (value == ">")
+private fun Token.isTagTailStart(): Boolean = isTagHeadStart()
+private fun Token.isTagTailEnd(): Boolean = isTagHeadEnd()
 
 private fun HNode.isEOF(): Boolean = nodeType == "EOF"

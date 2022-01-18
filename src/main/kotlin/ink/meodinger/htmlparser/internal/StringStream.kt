@@ -96,7 +96,7 @@ class StringStream(string: String) : Stream<Char> {
             var i = -1
             while (++i < count) {
                 if (array[index + i] != charArray[i]) {
-                    index += count
+                    index += i
                     continue@outer
                 }
             }
