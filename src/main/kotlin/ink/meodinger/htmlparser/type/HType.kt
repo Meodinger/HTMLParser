@@ -9,11 +9,14 @@ enum class HType(private val type: String) {
     HTML("HTML"),
     XHTML("XHTML");
 
-    fun of(type: String): HType {
-        return when(type.uppercase()) {
-            HTML.type -> HTML
-            XHTML.type -> XHTML
-            else -> throw IllegalArgumentException("Invalid type")
+    companion object {
+        fun of(type: String): HType {
+            return when(type.uppercase()) {
+                HTML.type -> HTML
+                XHTML.type -> XHTML
+                else -> throw IllegalArgumentException("Invalid type")
+            }
         }
     }
+
 }

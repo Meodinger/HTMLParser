@@ -8,9 +8,10 @@ import ink.meodinger.htmlparser.type.HNode
  * Date: 2022/1/17
  * Have fun with my code!
  */
-abstract class HLink : HNode() {
+class HLink(
+    attributes: Map<String, String> = emptyMap(),
+) : HNode("HTMLLink", attributes) {
 
-    override val nodeType: String = "HTMLLink"
-    override val children: MutableList<HNode> = FreezableList<HNode>().apply { freeze() }
+    override val children: MutableList<HNode> = FreezableList(true)
 
 }

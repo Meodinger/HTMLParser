@@ -5,10 +5,10 @@ package ink.meodinger.htmlparser.internal
  * Date: 2022/1/17
  * Have fun with my code!
  */
-class FreezableList<E> : MutableList<E>, Freezable{
+class FreezableList<E>(isFreezing: Boolean = false) : MutableList<E>, Freezable{
 
     private val innerList: MutableList<E> = ArrayList()
-    override var freezing: Boolean = false
+    override var freezing: Boolean = isFreezing
 
     override val size: Int get() = innerList.size
 

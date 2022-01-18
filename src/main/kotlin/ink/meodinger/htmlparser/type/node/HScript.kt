@@ -8,10 +8,12 @@ import ink.meodinger.htmlparser.type.HNode
  * Date: 2022/1/17
  * Have fun with my code!
  */
-abstract class HScript : HNode() {
+class HScript(
+    attributes: Map<String, String> = emptyMap(),
+    private val scriptText: String
+) : HNode("HTMLScript", attributes) {
 
-    override val nodeType: String = "HTMLScript"
-    override val children: MutableList<HNode> = FreezableList<HNode>().apply { freeze() }
+    override val children: MutableList<HNode> = FreezableList(true)
 
     val src: String get() = attributes.getOrElse("src") { "" }
     val type: String get() = attributes.getOrElse("type") { "" }

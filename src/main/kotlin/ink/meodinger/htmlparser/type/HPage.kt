@@ -6,11 +6,8 @@ package ink.meodinger.htmlparser.type
  * Have fun with my code!
  */
 
-class HPage(val type: HType = HType.HTML) : HNode() {
-
-    override val nodeType: String = "HTMLPage"
-    override val children: MutableList<HNode> = ArrayList()
-    override val attributes: MutableMap<String, String> = HashMap()
+class HPage(val type: HType = HType.HTML, ) : HNode("HTMLPage") {
 
     val lang: String get() = attributes.getOrElse("lang") { "en" }
+
 }

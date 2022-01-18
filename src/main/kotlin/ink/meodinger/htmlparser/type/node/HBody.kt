@@ -7,8 +7,9 @@ import ink.meodinger.htmlparser.type.HNode
  * Date: 2022/1/17
  * Have fun with my code!
  */
-abstract class HBody : HNode() {
-
-    override val nodeType: String = "HTMLBody"
+class HBody(
+    attributes: Map<String, String> = emptyMap(),
+    children: List<HNode> = emptyList()
+) : HNode("HTMLBody", attributes, children) {
 
 }

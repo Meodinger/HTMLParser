@@ -5,10 +5,10 @@ package ink.meodinger.htmlparser.internal
  * Date: 2022/1/17
  * Have fun with my code!
  */
-class FreezableMap<K, V> : MutableMap<K ,V>, Freezable {
+class FreezableMap<K, V>(isFreezing: Boolean = false) : MutableMap<K ,V>, Freezable {
 
     private val innerMap: MutableMap<K, V> = HashMap()
-    override var freezing: Boolean = false
+    override var freezing: Boolean = isFreezing
 
     override val size: Int get() = innerMap.size
     override val entries: MutableSet<MutableMap.MutableEntry<K, V>> get() {

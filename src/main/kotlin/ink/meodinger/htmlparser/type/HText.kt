@@ -9,10 +9,9 @@ import ink.meodinger.htmlparser.internal.FreezableMap
  * Have fun with my code!
  */
 
-class HText(val text: String) : HNode() {
+class HText(val text: String) : HNode("PlainText") {
 
-    override val nodeType: String = "PlainText"
-    override val attributes: MutableMap<String, String> = FreezableMap<String, String>().apply { freeze() }
-    override val children: MutableList<HNode> = FreezableList<HNode>().apply { freeze() }
+    override val attributes: MutableMap<String, String> = FreezableMap(true)
+    override val children: MutableList<HNode> = FreezableList(true)
 
 }

@@ -6,11 +6,19 @@ package ink.meodinger.htmlparser.type
  * Date: 2022/1/17
  * Have fun with my code!
  */
-abstract class HNode {
+open class HNode(type: String, attributes: Map<String, String> = emptyMap(), children: List<HNode> = emptyList()) {
 
-    abstract val nodeType: String
-    abstract val children: MutableList<HNode>
-    abstract val attributes: MutableMap<String, String>
+    companion object {
+        const val NODE_HEAD = "HTMLHead"
+        const val NODE_BODY = "HTMLBody"
+        const val NODE_META = "HTMLMeta"
+        const val NODE_LINK = "HTMLLink"
+        const val NODE_SCRIPT = "HTMLScript"
+    }
+
+    val nodeType: String = type
+    open val attributes: MutableMap<String, String> = HashMap(attributes)
+    open val children: MutableList<HNode> = ArrayList(children)
 
     val id: String get() = attributes.getOrElse("id") { "" }
 

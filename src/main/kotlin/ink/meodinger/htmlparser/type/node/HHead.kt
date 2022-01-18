@@ -7,10 +7,11 @@ import ink.meodinger.htmlparser.type.HNode
  * Date: 2022/1/17
  * Have fun with my code!
  */
-abstract class HHead : HNode() {
+class HHead(
+    attributes: Map<String, String> = emptyMap(),
+    children: List<HNode> = emptyList()
+) : HNode("HTMLHead", attributes, children) {
 
-    override val nodeType: String = "HTMLHead"
-
-    abstract val metas: List<HMeta>
+    val metas: List<HMeta> get() = children.filterIsInstance<HMeta>()
 
 }

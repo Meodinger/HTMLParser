@@ -9,7 +9,7 @@ package ink.meodinger.htmlparser.internal
 /**
  * String Char Stream
  */
-class StringStream(string: String) {
+class StringStream(string: String) : Stream<Char> {
 
     val array: CharArray = string.toCharArray()
     val size = array.size
@@ -23,7 +23,7 @@ class StringStream(string: String) {
     private var markR: Int = -1
     private var markC: Int = -1
 
-    fun next(): Char {
+    override fun next(): Char {
         if (eof()) croak("EOF")
         val char = array[pointer++]
 
@@ -37,16 +37,16 @@ class StringStream(string: String) {
         return char
     }
 
-    fun peek(): Char {
+    override fun peek(): Char {
         if (eof()) croak("EOF")
         return array[pointer]
     }
 
-    fun eof(): Boolean {
+    override fun eof(): Boolean {
         return pointer == size
     }
 
-    fun croak(message: String): Nothing {
+    override fun croak(message: String): Nothing {
         throw IllegalStateException("[$row:$col] $message")
     }
 

@@ -1,8 +1,5 @@
 package ink.meodinger.htmlparser.internal
 
-import ink.meodinger.htmlparser.parser.HToken
-import ink.meodinger.htmlparser.parser.HTokenType
-
 
 /**
  * Author: Meodinger
@@ -13,7 +10,17 @@ import ink.meodinger.htmlparser.parser.HTokenType
 /**
  * Token Stream
  */
-class TokenStream(private val stringStream: StringStream) {
+class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.Token> {
+
+    /**
+     * Token Type
+     */
+    enum class TokenType { SYMBOL, STRING, COMMENT, IDENTIFIER, TEXT, EOF }
+
+    /**
+     * Token
+     */
+    data class Token(val type: TokenType, val value: String)
 
     companion object {
         private val CommentHeads: CharArray = charArrayOf('!')
@@ -55,31 +62,31 @@ class TokenStream(private val stringStream: StringStream) {
     - if no matches, invoke input.croak() to throw an Error.
     */
 
-    private var current: HToken? = null
+    private var current: Token? = null
     private var textMayOccur: Boolean = false
 
-    fun next(): HToken {
+    override fun next(): Token {
         val token = current
         current = null
-        return token ?: readNext()
+        return token ?: takeNext()
     }
-    fun peek(): HToken {
-        return current ?: readNext().also { current = it }
+    override fun peek(): Token {
+        return current ?: takeNext().also { current = it }
     }
-    fun eof(): Boolean {
+    override fun eof(): Boolean {
         return stringStream.eof()
     }
-    fun croak(message: String): Nothing {
+    override fun croak(message: String): Nothing {
         stringStream.croak(message)
     }
 
-    private fun readNext(): HToken {
+    private fun takeNext(): Token {
         readWhile(Companion::isWhitespace)
-        if (stringStream.eof()) return HToken(HTokenType.EOF, "")
+        if (stringStream.eof()) return Token(TokenType.EOF, "")
 
         val char = stringStream.peek()
 
-        val token: HToken =
+        val token: Token =
             if (isSymbol(char)) takeSymbol()
             else if (isCommentStart(char)) takeComment()
             else if (isStringStart(char)) takeString(char)
@@ -139,32 +146,32 @@ class TokenStream(private val stringStream: StringStream) {
         return builder.toString()
     }
 
-    private fun takeSymbol(): HToken {
-        return HToken(
-            HTokenType.SYMBOL,
+    private fun takeSymbol(): Token {
+        return Token(
+            TokenType.SYMBOL,
             stringStream.next().toString()
         )
     }
-    private fun takeComment(): HToken {
-        return HToken(
-            HTokenType.COMMENT,
+    private fun takeComment(): Token {
+        return Token(
+            TokenType.COMMENT,
             readUntil('>')
         )
     }
-    private fun takeString(quote: Char): HToken {
+    private fun takeString(quote: Char): Token {
         stringStream.next()
-        return HToken(
-            HTokenType.STRING,
+        return Token(
+            TokenType.STRING,
             readString(quote)
         )
     }
-    private fun takeIdentifier(): HToken {
-        return HToken(
-            HTokenType.IDENTIFIER,
+    private fun takeIdentifier(): Token {
+        return Token(
+            TokenType.IDENTIFIER,
             readWhile(Companion::isIdentifier)
         )
     }
-    private fun takeText(): HToken {
+    private fun takeText(): Token {
         val builder = StringBuilder()
 
         while (true) {
@@ -186,8 +193,8 @@ class TokenStream(private val stringStream: StringStream) {
             }
         }
 
-        return HToken(
-            HTokenType.TEXT,
+        return Token(
+            TokenType.TEXT,
             builder.toString()
         )
     }

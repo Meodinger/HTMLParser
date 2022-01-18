@@ -8,9 +8,10 @@ import ink.meodinger.htmlparser.type.HNode
  * Date: 2022/1/17
  * Have fun with my code!
  */
-abstract class HMeta : HNode() {
+class HMeta(
+    attributes: Map<String, String> = emptyMap(),
+) : HNode("HTMLMeta", attributes) {
 
-    override val nodeType: String = "HTMLMeta"
-    override val children: MutableList<HNode> = FreezableList<HNode>().apply { freeze() }
+    override val children: MutableList<HNode> = FreezableList(true)
 
 }
