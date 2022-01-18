@@ -19,9 +19,10 @@ class StringStream(string: String) : Stream<Char> {
     private var row: Int = 1
     private var col: Int = 1
 
-    private var markP: Int = -1
-    private var markR: Int = -1
-    private var markC: Int = -1
+    private var marked: Boolean = false
+    private var markP: Int = 0
+    private var markR: Int = 0
+    private var markC: Int = 0
 
     override fun next(): Char {
         if (eof()) croak("EOF")
@@ -50,17 +51,24 @@ class StringStream(string: String) : Stream<Char> {
         throw IllegalStateException("[$row:$col] $message")
     }
 
-    fun mark() {
+    override fun mark() {
         markP = pointer
         markR = row
         markC = col
+
+        marked = true
     }
 
-    fun reset() {
-        if (markP == -1) croak("Cannot reset when not marked")
+    override fun reset() {
+        if (!marked) croak("Cannot reset when not marked")
+
         pointer = markP
         row = markR
         col = markC
+    }
+
+    override fun unmarked() {
+        marked = false
     }
 
     /**

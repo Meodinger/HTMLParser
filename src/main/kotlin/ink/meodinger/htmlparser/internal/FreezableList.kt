@@ -78,4 +78,7 @@ class FreezableList<E>(isFreezing: Boolean = false) : MutableList<E>, Freezable{
     override fun subList(fromIndex: Int, toIndex: Int): MutableList<E> = innerList.subList(fromIndex, toIndex)
 
 
+    override fun toString(): String {
+        return "$innerList($freezing)"
+    }
 }

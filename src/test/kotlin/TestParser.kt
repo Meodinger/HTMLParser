@@ -14,11 +14,11 @@ import javax.net.ssl.HttpsURLConnection
 fun main() {
     val connection = URL("https://blog.csdn.net/TSY_1222/article/details/100536947").openConnection() as HttpsURLConnection
     connection.connect()
+    val text = connection.inputStream.reader(StandardCharsets.UTF_8).readText()
 
     val startTime = Date().time
-    val page = parse(connection.inputStream.reader(StandardCharsets.UTF_8).readText())
+    val page = parse(text)
     val endTime = Date().time
 
-    println(page)
     println(endTime - startTime)
 }

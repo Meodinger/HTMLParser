@@ -22,4 +22,8 @@ open class HNode(type: String, attributes: Map<String, String> = emptyMap(), chi
 
     val id: String get() = attributes.getOrElse("id") { "" }
 
+    override fun toString(): String {
+        return "HNode($nodeType, $attributes, $children)"
+    }
+
 }

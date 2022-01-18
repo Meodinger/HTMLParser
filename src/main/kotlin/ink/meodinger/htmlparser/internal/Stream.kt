@@ -15,4 +15,10 @@ interface Stream<out E> {
 
     fun croak(message: String): Nothing
 
+    fun mark()
+
+    fun reset()
+
+    fun unmarked()
+
 }

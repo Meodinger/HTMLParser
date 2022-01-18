@@ -48,8 +48,8 @@ class FreezableMap<K, V>(isFreezing: Boolean = false) : MutableMap<K ,V>, Freeza
 
     override fun isEmpty(): Boolean = innerMap.isEmpty()
 
-
-
-
+    override fun toString(): String {
+        return "$innerMap($freezing)"
+    }
 
 }

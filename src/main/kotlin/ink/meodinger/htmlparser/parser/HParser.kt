@@ -4,10 +4,7 @@ import ink.meodinger.htmlparser.internal.StringStream
 import ink.meodinger.htmlparser.internal.TokenStream
 import ink.meodinger.htmlparser.internal.TokenStream.Token
 import ink.meodinger.htmlparser.internal.TokenStream.TokenType
-import ink.meodinger.htmlparser.type.HNode
-import ink.meodinger.htmlparser.type.HPage
-import ink.meodinger.htmlparser.type.HText
-import ink.meodinger.htmlparser.type.HType
+import ink.meodinger.htmlparser.type.*
 
 /**
  * Author: Meodinger
@@ -22,47 +19,120 @@ fun parse(htmlText: String): HPage {
     val tokenStream = TokenStream(StringStream(htmlText))
 
     fun Token.except(type: TokenType): Token {
-        return also { if (it.type != type) tokenStream.croak("Except $type, got $it") }
+        return also {
+            if (it.type != type)
+                tokenStream.croak("Except $type, got $it")
+        }
     }
     fun Token.except(type: TokenType, value: String): Token {
-        return also { if(except(type).value != value) tokenStream.croak("Except value `$value`, got `${it.value}`") }
+        return also {
+            if(it.type != type || it.value != value)
+                tokenStream.croak("Except $type:($value), got ${it.type}:(${it.value})")
+        }
     }
 
     fun parseNode(): HNode {
-        // Read tag name
+        if (tokenStream.peek().isEOF()) return HNode("EOF")
+
         tokenStream.next().except(TokenType.SYMBOL, "<")
+
+        // Check if is comment
+        if (tokenStream.peek().isComment()) {
+            val comment = HComment(tokenStream.next().value)
+            tokenStream.next().except(TokenType.SYMBOL, ">")
+            return comment
+        }
+
+        // Read tag name
         val name = tokenStream.next().except(TokenType.IDENTIFIER).value
+        val isSingleTag = SingleTagList.contains(name)
+
+        var nextToken: Token
 
         // Read attributes
         val attributes = HashMap<String, String>()
-        while (!tokenStream.peek().isTagEnd()) {
-            val attr   = tokenStream.next().except(TokenType.IDENTIFIER)
-            tokenStream.next().except(TokenType.SYMBOL, "=")
-            val value  = tokenStream.next().except(TokenType.STRING)
-            attributes[attr.value] = value.value
+        nextToken = tokenStream.peek()
+        while (!nextToken.isTagHeadEnd() && !(isSingleTag && nextToken.isSymbolSlash())) {
+            val attr = tokenStream.next().except(TokenType.IDENTIFIER).value
+
+            val next = tokenStream.peek()
+            if (next.isAttributeAssign()) {
+                tokenStream.next() // Take assignment symbol
+                val valueToken = tokenStream.next()
+                val value = when (valueToken.type) {
+                    TokenType.STRING -> valueToken.value
+                    TokenType.IDENTIFIER -> {
+                        // ill-format
+                        val builder = StringBuilder()
+                        builder.append(valueToken.value)
+
+                        // May ill-format like `type=text/javascript`
+                        if (tokenStream.peek().isSymbolSlash() && tokenStream.peek(2).isIdentifier()) {
+                            builder.append(tokenStream.next().value).append(tokenStream.next().value)
+                        }
+
+                        builder.toString()
+                    }
+                    else -> tokenStream.croak("Expected String or Identifier, got $valueToken")
+                }
+                attributes[attr] = value
+                nextToken = tokenStream.peek()
+            } else {
+                // this attribute is a standalone attribute
+                attributes[attr] = ""
+                nextToken = next
+            }
         }
 
-        // If end here, return
-        if (tokenStream.peek().isNodeEnd()) return HNode(name, attributes)
+        if (isSingleTag) {
+            if (tokenStream.peek().isSymbolSlash()) {
+                // If is SingleTag and actually has the slash, take it and return
+                tokenStream.next()
+                tokenStream.next().except(TokenType.SYMBOL, ">")
+            } else {
+                // Else may the SingleTag has its tail
+                tokenStream.next().except(TokenType.SYMBOL, ">")
 
-        // End tag start
-        tokenStream.next().except(TokenType.SYMBOL, ">")
+                tokenStream.mark()
+                if (
+                    tokenStream.next().isTagTailStart() &&
+                    tokenStream.next().isSymbolSlash() &&
+                    tokenStream.next().value == name &&
+                    tokenStream.next().isTagTailEnd()
+                ) {
+                    // gotcha!
+                } else {
+                    // not the tail, just forget the slash
+                    tokenStream.reset()
+                }
+                tokenStream.unmarked()
+            }
+            return HNode(name, attributes)
+        } else {
+            tokenStream.next().except(TokenType.SYMBOL, ">")
+        }
 
         // Read children
         val children = ArrayList<HNode>()
-        var nextToken: Token = tokenStream.peek()
+        nextToken = tokenStream.peek()
         while (true) {
-            if (nextToken.isNodeEnd()) break
-
-            if (nextToken.isTagStart()) children.add(parseNode())
-            else if (nextToken.isText()) children.add(HText(tokenStream.next().value))
+            if (nextToken.isTagTailStart()) {
+                if (tokenStream.peek(2).isSymbolSlash()) {
+                    break
+                } else {
+                    val node = parseNode()
+                    if (node.isEOF()) break
+                    children.add(node)
+                }
+            } else if (nextToken.isText()) children.add(HText(tokenStream.next().value))
             else tokenStream.croak("Unexpected token: $nextToken")
 
             nextToken = tokenStream.peek()
         }
 
         // End tag end
-        tokenStream.next().except(TokenType.SYMBOL, "</")
+        tokenStream.next().except(TokenType.SYMBOL, "<")
+        tokenStream.next().except(TokenType.SYMBOL, "/")
         tokenStream.next().except(TokenType.IDENTIFIER, name)
         tokenStream.next().except(TokenType.SYMBOL, ">")
 
@@ -71,23 +141,36 @@ fun parse(htmlText: String): HPage {
 
     // Read Document Type
     tokenStream.next().except(TokenType.SYMBOL, "<")
-    val type = HType.of(tokenStream.next().except(TokenType.COMMENT).value.split(" ")[1])
+    val type = HPage.HType.of(tokenStream.next().except(TokenType.COMMENT).value.split(" ")[1])
     tokenStream.next().except(TokenType.SYMBOL, ">")
 
     return HPage(type).apply {
-        children.add(parseNode()) // head
-        children.add(parseNode()) // body
+        children.add(parseNode()) // html
     }
 }
 
+private val SingleTagList: Array<String> = arrayOf(
+    "br", "hr", "img", "input", "link",
+    "meta", "area", "base", "basefont", "param",
+    "col", "frame", "embed", "keygen", "source",
+    // Below are not documented but occurred tags
+    "path"
+)
 
 private fun Token.isAttributeAssign(): Boolean = isSymbol() && (value == "=")
-private fun Token.isTagStart(): Boolean = isSymbol() && (value == "<")
-private fun Token.isTagEnd(): Boolean = isNodeEnd() || (value == ">")
-private fun Token.isNodeEnd(): Boolean = isSymbol() && (value == "/>")
 
+private fun Token.isTagHeadStart(): Boolean = isSymbol() && (value == "<")
+private fun Token.isTagHeadEnd(): Boolean = isSymbol() && (value == ">")
+private fun Token.isTagTailStart(): Boolean = isTagHeadStart()
+private fun Token.isTagTailEnd(): Boolean = isTagHeadEnd()
+
+private fun Token.isSymbolSlash(): Boolean = isSymbol() && (value == "/")
+
+private fun Token.isEOF(): Boolean = type == TokenType.EOF
 private fun Token.isText(): Boolean = type == TokenType.TEXT
 private fun Token.isSymbol(): Boolean = type == TokenType.SYMBOL
 private fun Token.isString(): Boolean = type == TokenType.STRING
 private fun Token.isComment(): Boolean = type == TokenType.COMMENT
 private fun Token.isIdentifier(): Boolean = type == TokenType.IDENTIFIER
+
+private fun HNode.isEOF(): Boolean = nodeType == "EOF"

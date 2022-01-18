@@ -64,6 +64,12 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
 
     private var current: Token? = null
     private var textMayOccur: Boolean = false
+    private var inScript: Boolean = false
+
+    private var marked: Boolean = false
+    private var markCurrent: Token? = null
+    private var markTextFlag: Boolean = false
+    private var markScriptFlag: Boolean = false
 
     override fun next(): Token {
         val token = current
@@ -79,6 +85,39 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
     override fun croak(message: String): Nothing {
         stringStream.croak(message)
     }
+    override fun mark() {
+        stringStream.mark()
+        markCurrent = current
+        markTextFlag = textMayOccur
+        markScriptFlag = inScript
+
+        marked = true
+    }
+    override fun reset() {
+        if (!marked) croak("Cannot reset when not marked")
+
+        stringStream.reset()
+        current = markCurrent
+        textMayOccur = markTextFlag
+        inScript = markScriptFlag
+    }
+    override fun unmarked() {
+        stringStream.unmarked()
+        marked = false
+    }
+
+    fun peek(num: Int) : Token {
+        if (num <= 0) throw IllegalArgumentException("Should bigger than 0")
+        if (num == 1) return peek()
+
+        mark()
+        for (i in 1 until num) next()
+        val token = peek()
+        reset()
+        unmarked()
+
+        return token
+    }
 
     private fun takeNext(): Token {
         readWhile(Companion::isWhitespace)
@@ -87,10 +126,18 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
         val char = stringStream.peek()
 
         val token: Token =
-            if (isSymbol(char)) takeSymbol()
-            else if (isCommentStart(char)) takeComment()
-            else if (isStringStart(char)) takeString(char)
-            else if (textMayOccur) {
+            if (isSymbol(char)) {
+                if (textMayOccur && inScript && char == '/') {
+                    // Script starts with comment
+                    takeText()
+                } else {
+                    takeSymbol()
+                }
+            } else if (isCommentStart(char)) {
+                takeComment()
+            } else if (isStringStart(char)) {
+                takeString(char)
+            } else if (textMayOccur) {
                 takeText()
             } else {
                 if (isIdentifierStart(char)) takeIdentifier()
@@ -99,6 +146,9 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
 
         if (token.value == "<") textMayOccur = false
         if (token.value == ">") textMayOccur = true
+
+        if (token.type == TokenType.IDENTIFIER && token.value == "script") inScript = true
+        if (inScript && token.type == TokenType.SYMBOL && token.value == "/") inScript = false
 
         return token
     }
@@ -153,10 +203,25 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
         )
     }
     private fun takeComment(): Token {
-        return Token(
-            TokenType.COMMENT,
-            readUntil('>')
-        )
+        stringStream.next()
+        val isSimpleComment = stringStream.peek() == '-'
+
+        if (isSimpleComment) {
+            stringStream.next()
+            stringStream.next()
+            val content = readTo(stringStream.nextIndexOf("-->"))
+            stringStream.next()
+            stringStream.next()
+            return Token(
+                TokenType.COMMENT,
+                "!--$content--"
+            )
+        } else {
+            return Token(
+                TokenType.COMMENT,
+                readUntil('>')
+            )
+        }
     }
     private fun takeString(quote: Char): Token {
         stringStream.next()
@@ -173,10 +238,11 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
     }
     private fun takeText(): Token {
         val builder = StringBuilder()
+        val endMark = if (inScript) "</" else "<"
 
         while (true) {
             // NOTE: Find a better way
-            val index0 = stringStream.nextIndexOf("</")
+            val index0 = stringStream.nextIndexOf(endMark)
             val index1 = stringStream.nextIndexOf('\"')
             val index2 = stringStream.nextIndexOf('\'')
 
