@@ -1,7 +1,5 @@
-package ink.meodinger.htmlparser.parser
+package ink.meodinger.htmlparser
 
-import ink.meodinger.htmlparser.HNode
-import ink.meodinger.htmlparser.HPage
 import ink.meodinger.htmlparser.internal.StringStream
 import ink.meodinger.htmlparser.internal.TokenStream
 import ink.meodinger.htmlparser.internal.TokenStream.Token

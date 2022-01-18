@@ -1,4 +1,4 @@
-import ink.meodinger.htmlparser.parser.parse
+import ink.meodinger.htmlparser.parse
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.*
