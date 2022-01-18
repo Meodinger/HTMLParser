@@ -33,7 +33,7 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
             addAll('A'..'Z')
             addAll('0'..'9')
         }.toCharArray()
-        private val Whitespaces: CharArray = charArrayOf(' ', '\n', '\t')
+        private val Whitespaces: CharArray = charArrayOf(' ', '\n', '\t', '\r')
         private val Symbols: CharArray = charArrayOf('=', '<', '>', '/')
 
         private fun isCommentStart(char: Char): Boolean = CommentHeads.contains(char)
@@ -228,7 +228,7 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
     }
     private fun takeText(): Token {
         val builder = StringBuilder()
-        val endMark = if (inScript || inStyle) "</" else "<"
+        val endMark = if (inScript) "</script>" else if (inStyle) "</style>" else "<"
 
         while (true) {
             // NOTE: Find a better way
