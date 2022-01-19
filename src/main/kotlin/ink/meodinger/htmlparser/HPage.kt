@@ -34,4 +34,6 @@ class HPage(
     val head: HNode get() = html.children[0]
     val body: HNode get() = html.children[1]
 
+    override fun toString(): String = "HPage($type, $html)"
+
 }

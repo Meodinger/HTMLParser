@@ -47,18 +47,16 @@ fun parse(htmlText: String): HPage {
         val name = tokenStream.next().except(TokenType.IDENTIFIER).value
         val isSingleTag = SingleTagList.contains(name)
 
-        if (name == "tbody") println("!")
-
         var nextToken: Token
 
         // Read attributes
         val attributes = HashMap<String, String>()
         nextToken = tokenStream.peek()
-        while (!nextToken.isTagEnd() && !(isSingleTag && nextToken.isSymbolSlash())) {
+        while (!nextToken.isSymbolEnd() && !(isSingleTag && nextToken.isSymbolSlash())) {
             val attr = tokenStream.next().except(TokenType.IDENTIFIER).value
 
             val next = tokenStream.peek()
-            if (next.isAttributeAssign()) {
+            if (next.isSymbolAssign()) {
                 tokenStream.next() // Take assignment symbol
                 val valueToken = tokenStream.next()
                 val value = when (valueToken.type) {
@@ -96,10 +94,10 @@ fun parse(htmlText: String): HPage {
 
                 tokenStream.mark()
                 if (
-                    tokenStream.next().isTagStart() &&
+                    tokenStream.next().isSymbolStart() &&
                     tokenStream.next().isSymbolSlash() &&
                     tokenStream.next().value == name &&
-                    tokenStream.next().isTagEnd()
+                    tokenStream.next().isSymbolEnd()
                 ) {
                     // gotcha!
                 } else {
@@ -117,7 +115,7 @@ fun parse(htmlText: String): HPage {
         val children = ArrayList<HNode>()
         nextToken = tokenStream.peek()
         while (true) {
-            if (nextToken.isTagStart()) {
+            if (nextToken.isSymbolStart()) {
                 if (tokenStream.peek(2).isSymbolSlash()) {
                     // The end tag
                     break

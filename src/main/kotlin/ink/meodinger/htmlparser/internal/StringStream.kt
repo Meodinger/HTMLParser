@@ -48,7 +48,8 @@ class StringStream(string: String) : Stream<Char> {
     }
 
     override fun croak(message: String): Nothing {
-        throw IllegalStateException("[$row:$col] $message")
+        val char = array[pointer - 1]
+        throw IllegalStateException("[$row:$col]('$char',${char.code}) $message")
     }
 
     override fun mark() {
@@ -105,5 +106,7 @@ class StringStream(string: String) : Stream<Char> {
 
         return size
     }
+
+    override fun toString(): String = "[$row:$col](${array[pointer]})"
 
 }

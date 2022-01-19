@@ -28,10 +28,10 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
         fun isComment(): Boolean = type == TokenType.COMMENT
         fun isIdentifier(): Boolean = type == TokenType.IDENTIFIER
 
-        fun isAttributeAssign(): Boolean = isSymbol() && (value == "=")
+        fun isSymbolAssign(): Boolean = isSymbol() && (value == "=")
         fun isSymbolSlash(): Boolean = isSymbol() && (value == "/")
-        fun isTagStart(): Boolean = isSymbol() && (value == "<")
-        fun isTagEnd(): Boolean = isSymbol() && (value == ">")
+        fun isSymbolStart(): Boolean = isSymbol() && (value == "<")
+        fun isSymbolEnd(): Boolean = isSymbol() && (value == ">")
     }
 
     companion object {
@@ -45,7 +45,7 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
             addAll('A'..'Z')
             addAll('0'..'9')
         }.toCharArray()
-        private val Whitespaces: CharArray = charArrayOf(' ', '\n', '\t', '\r')
+        private val Whitespaces: CharArray = charArrayOf(' ', '\n', '\t', '\r', '\uFEFF')
         private val Symbols: CharArray = charArrayOf('=', '<', '>', '/')
 
         private fun isCommentStart(char: Char): Boolean = CommentHeads.contains(char)
@@ -66,14 +66,13 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
     */
 
     private var current: Token? = null
-    private var textMayOccur: Boolean = false
-    private var inScript: Boolean = false
-    private var inStyle: Boolean = false
+    private var mayText: Boolean = false
+    private var inCode: Boolean = false
 
     private var marked: Boolean = false
     private var markCurrent: Token? = null
     private var markTextFlag: Boolean = false
-    private var markScriptFlag: Boolean = false
+    private var markCodeFlag: Boolean = false
 
     override fun next(): Token {
         val token = current
@@ -92,8 +91,8 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
     override fun mark() {
         stringStream.mark()
         markCurrent = current
-        markTextFlag = textMayOccur
-        markScriptFlag = inScript
+        markTextFlag = mayText
+        markCodeFlag = inCode
 
         marked = true
     }
@@ -102,8 +101,8 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
 
         stringStream.reset()
         current = markCurrent
-        textMayOccur = markTextFlag
-        inScript = markScriptFlag
+        mayText = markTextFlag
+        inCode = markCodeFlag
     }
     override fun unmarked() {
         stringStream.unmarked()
@@ -130,29 +129,23 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
         val char = stringStream.peek()
 
         val token: Token =
-            if (textMayOccur && (inScript && (char == '/' || char == '!' || isStringStart(char)))) {
-                // In case a script block occurred with //comment or !any or "string" at first
+            if (mayText && char != '<') {
                 takeText()
             } else if (isSymbol(char)) {
-                if (char == '<') textMayOccur = false
-                if (char == '>') textMayOccur = true
+                if (char == '<') mayText = false
+                if (char == '>') mayText = true
                 takeSymbol()
             } else if (isCommentStart(char)) {
                 takeComment()
             } else if (isStringStart(char)) {
                 takeString(char)
-            } else if (textMayOccur) {
-                takeText()
             } else if (isIdentifier(char)) {
                 takeIdentifier()
             } else croak("Unknown char: `$char`")
 
 
-        if (token.type == TokenType.IDENTIFIER && token.value == "script" && stringStream.peek() == '>') inScript = true
-        else if (inScript && token.type == TokenType.SYMBOL && token.value == "/") inScript = false
-
-        if (token.type == TokenType.IDENTIFIER && token.value == "style" && stringStream.peek() != '=') inStyle = true
-        else if (inStyle && token.type == TokenType.SYMBOL && token.value == "/") inStyle = false
+        if ((token.type == TokenType.IDENTIFIER) && ((token.value == "script" || token.value == "style") && stringStream.peek() == '>')) inCode = true
+        else if (inCode && token.type == TokenType.SYMBOL && token.value == "/") inCode = false
 
         return token
     }
@@ -230,32 +223,38 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
         )
     }
     private fun takeText(): Token {
-        val builder = StringBuilder()
-        val endMark = if (inScript) "</script>" else if (inStyle) "</style>" else "<"
+        return if (inCode) {
+            val builder = StringBuilder()
 
-        while (true) {
-            // NOTE: Find a better way
-            val index0 = stringStream.nextIndexOf(endMark)
-            val index1 = stringStream.nextIndexOf('\"')
-            val index2 = stringStream.nextIndexOf('\'')
+            while (true) {
+                // NOTE: Find a better way
+                val index0 = stringStream.nextIndexOf("</")
+                val index1 = stringStream.nextIndexOf('\"')
+                val index2 = stringStream.nextIndexOf('\'')
 
-            val index = index0.coerceAtMost(index1).coerceAtMost(index2)
-            if (index != index0) {
-                val quote = if (index == index1) '\"' else '\''
+                val index = index0.coerceAtMost(index1).coerceAtMost(index2)
+                if (index != index0) {
+                    val quote = if (index == index1) '\"' else '\''
 
-                val text = readTo(index)
-                val string = takeString(quote).value
-                builder.append(text).append(quote).append(string).append(quote)
-            } else {
-                builder.append(readTo(index))
-                break
+                    val text = readTo(index)
+                    val string = takeString(quote).value
+                    builder.append(text).append(quote).append(string).append(quote)
+                } else {
+                    builder.append(readTo(index))
+                    break
+                }
             }
-        }
 
-        return Token(
-            TokenType.TEXT,
-            builder.toString()
-        )
+            Token(
+                TokenType.TEXT,
+                builder.toString()
+            )
+        } else {
+            Token(
+                TokenType.TEXT,
+                readWhile { it != '<' }
+            )
+        }
     }
 
 }

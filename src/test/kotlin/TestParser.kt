@@ -2,7 +2,6 @@ import ink.meodinger.htmlparser.parse
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.*
-import javax.net.ssl.HttpsURLConnection
 
 
 /**
@@ -12,9 +11,18 @@ import javax.net.ssl.HttpsURLConnection
  */
 
 fun main() {
-    val connection = URL("https://nekodict.com/words?q=%E8%8D%89").openConnection() as HttpsURLConnection
+    val connection = URL("https://nekodict.com/words?q=%E8%8D%89").openConnection()
     connection.connect()
     val text = connection.inputStream.reader(StandardCharsets.UTF_8).readText()
+
+    /*
+    val connection = URL("http://www.fhdq.net/bd/44.html").openConnection()
+    connection.connect()
+    val text = connection.inputStream.reader(StandardCharsets.UTF_8).readText()
+        .replace('\uFEFF', ' ')
+        .replace("=http://www.fhdq.net", "=\"\"") // error
+        .replace("<span>特殊符号</span>", "<span>\"</span>")
+     */
 
     // println(text)
 
@@ -23,8 +31,5 @@ fun main() {
     val endTime = Date().time
 
     println(endTime - startTime)
-
-    val results = page.body.children[1].children[2]
-    val first = results.children[0]
-    println(first)
+    println(page)
 }
