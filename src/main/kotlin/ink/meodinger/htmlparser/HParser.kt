@@ -32,7 +32,7 @@ fun parse(htmlText: String): HPage {
     }
 
     fun parseNode(): HNode {
-        if (tokenStream.peek().isEOF()) return HNode("EOF")
+        if (tokenStream.peek().isEOF()) return HNode.EOF
 
         tokenStream.next().except(TokenType.SYMBOL, "<")
 
@@ -54,7 +54,7 @@ fun parse(htmlText: String): HPage {
         // Read attributes
         val attributes = HashMap<String, String>()
         nextToken = tokenStream.peek()
-        while (!nextToken.isTagHeadEnd() && !(isSingleTag && nextToken.isSymbolSlash())) {
+        while (!nextToken.isTagEnd() && !(isSingleTag && nextToken.isSymbolSlash())) {
             val attr = tokenStream.next().except(TokenType.IDENTIFIER).value
 
             val next = tokenStream.peek()
@@ -96,10 +96,10 @@ fun parse(htmlText: String): HPage {
 
                 tokenStream.mark()
                 if (
-                    tokenStream.next().isTagTailStart() &&
+                    tokenStream.next().isTagStart() &&
                     tokenStream.next().isSymbolSlash() &&
                     tokenStream.next().value == name &&
-                    tokenStream.next().isTagTailEnd()
+                    tokenStream.next().isTagEnd()
                 ) {
                     // gotcha!
                 } else {
@@ -117,13 +117,13 @@ fun parse(htmlText: String): HPage {
         val children = ArrayList<HNode>()
         nextToken = tokenStream.peek()
         while (true) {
-            if (nextToken.isTagTailStart()) {
+            if (nextToken.isTagStart()) {
                 if (tokenStream.peek(2).isSymbolSlash()) {
                     // The end tag
                     break
                 } else {
                     val node = parseNode()
-                    if (node.isEOF()) break
+                    if (node === HNode.EOF) break
                     children.add(node)
                 }
             } else if (nextToken.isText()) {
@@ -157,19 +157,3 @@ private val SingleTagList: Array<String> = arrayOf(
     // Below are not documented but occurred tags
     "path"
 )
-
-private fun Token.isEOF(): Boolean = type == TokenType.EOF
-private fun Token.isText(): Boolean = type == TokenType.TEXT
-private fun Token.isSymbol(): Boolean = type == TokenType.SYMBOL
-private fun Token.isString(): Boolean = type == TokenType.STRING
-private fun Token.isComment(): Boolean = type == TokenType.COMMENT
-private fun Token.isIdentifier(): Boolean = type == TokenType.IDENTIFIER
-
-private fun Token.isAttributeAssign(): Boolean = isSymbol() && (value == "=")
-private fun Token.isSymbolSlash(): Boolean = isSymbol() && (value == "/")
-private fun Token.isTagHeadStart(): Boolean = isSymbol() && (value == "<")
-private fun Token.isTagHeadEnd(): Boolean = isSymbol() && (value == ">")
-private fun Token.isTagTailStart(): Boolean = isTagHeadStart()
-private fun Token.isTagTailEnd(): Boolean = isTagHeadEnd()
-
-private fun HNode.isEOF(): Boolean = nodeType == "EOF"

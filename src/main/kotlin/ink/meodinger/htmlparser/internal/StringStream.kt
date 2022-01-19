@@ -13,9 +13,9 @@ class StringStream(string: String) : Stream<Char> {
 
     val array: CharArray = string.toCharArray()
     val size = array.size
-
     var pointer: Int = 0
         private set
+
     private var row: Int = 1
     private var col: Int = 1
 

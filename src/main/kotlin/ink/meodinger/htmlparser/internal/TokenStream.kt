@@ -20,7 +20,19 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
     /**
      * Token
      */
-    data class Token(val type: TokenType, val value: String)
+    data class Token(val type: TokenType, val value: String) {
+        fun isEOF(): Boolean = type == TokenType.EOF
+        fun isText(): Boolean = type == TokenType.TEXT
+        fun isSymbol(): Boolean = type == TokenType.SYMBOL
+        fun isString(): Boolean = type == TokenType.STRING
+        fun isComment(): Boolean = type == TokenType.COMMENT
+        fun isIdentifier(): Boolean = type == TokenType.IDENTIFIER
+
+        fun isAttributeAssign(): Boolean = isSymbol() && (value == "=")
+        fun isSymbolSlash(): Boolean = isSymbol() && (value == "/")
+        fun isTagStart(): Boolean = isSymbol() && (value == "<")
+        fun isTagEnd(): Boolean = isSymbol() && (value == ">")
+    }
 
     companion object {
         private val CommentHeads: CharArray = charArrayOf('!')
@@ -38,9 +50,7 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
 
         private fun isCommentStart(char: Char): Boolean = CommentHeads.contains(char)
         private fun isStringStart(char: Char): Boolean = StringQuotes.contains(char)
-        private fun isIdentifierStart(char: Char): Boolean = Identifiers.contains(char)
-
-        private fun isIdentifier(char: Char): Boolean = isIdentifierStart(char)
+        private fun isIdentifier(char: Char): Boolean = Identifiers.contains(char)
         private fun isWhitespace(char: Char): Boolean = Whitespaces.contains(char)
         private fun isSymbol(char: Char):Boolean = Symbols.contains(char)
     }
@@ -50,16 +60,9 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
     |------------|---------------|
     | symbol     |          =<>/ |
     | comment    |            !* |
-    | string     |           "*" |
+    | string     |        '*'"*" |
     | identifier |  a-zA-Z0-9_-: |
     | text       |             * |
-
-    - skip whitespace;
-    - if input.eof() returns true, end;
-    - if input.peek() returns `"`, read a string;
-    - if input.peek() returns a letter or `_` or `-`, read an identifier
-    - if input.peek() returns a symbol, read a symbol;
-    - if no matches, invoke input.croak() to throw an Error.
     */
 
     private var current: Token? = null
@@ -127,7 +130,8 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
         val char = stringStream.peek()
 
         val token: Token =
-            if (textMayOccur && (inScript && (char == '/' || char == '!'))) {
+            if (textMayOccur && (inScript && (char == '/' || char == '!' || isStringStart(char)))) {
+                // In case a script block occurred with //comment or !any or "string" at first
                 takeText()
             } else if (isSymbol(char)) {
                 if (char == '<') textMayOccur = false
@@ -137,15 +141,14 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
                 takeComment()
             } else if (isStringStart(char)) {
                 takeString(char)
-            } else {
-                if (textMayOccur) {
-                    takeText()
-                } else if (isIdentifierStart(char)) {
-                    takeIdentifier()
-                } else croak("Unknown char: `$char`")
-            }
+            } else if (textMayOccur) {
+                takeText()
+            } else if (isIdentifier(char)) {
+                takeIdentifier()
+            } else croak("Unknown char: `$char`")
 
-        if (token.type == TokenType.IDENTIFIER && token.value == "script") inScript = true
+
+        if (token.type == TokenType.IDENTIFIER && token.value == "script" && stringStream.peek() == '>') inScript = true
         else if (inScript && token.type == TokenType.SYMBOL && token.value == "/") inScript = false
 
         if (token.type == TokenType.IDENTIFIER && token.value == "style" && stringStream.peek() != '=') inStyle = true
@@ -241,7 +244,7 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
                 val quote = if (index == index1) '\"' else '\''
 
                 val text = readTo(index)
-                val string = takeString(quote).value // Take will update stream
+                val string = takeString(quote).value
                 builder.append(text).append(quote).append(string).append(quote)
             } else {
                 builder.append(readTo(index))

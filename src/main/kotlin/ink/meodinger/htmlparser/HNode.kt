@@ -12,6 +12,10 @@ package ink.meodinger.htmlparser
  */
 open class HNode(type: String, attributes: Map<String, String> = emptyMap(), children: List<HNode> = emptyList()) {
 
+    companion object {
+        val EOF: HNode = HNode("EOF")
+    }
+
     class HText(val text: String) : HNode("PlainText") {
         override fun toString(): String = "PlainText(\"$text\")"
     }

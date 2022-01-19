@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>htmlparser</artifactId>
-    <groupId>ink.meodinger.plugin</groupId>
-    <version>1.0-SNAPSHOT</version>
+    <groupId>ink.meodinger</groupId>
+    <version>0.0.1</version>
     <packaging>jar</packaging>
 
     <name>HTMLParser</name>
@@ -82,7 +82,7 @@
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib</artifactId>
-            <version>1.6.0</version>
+            <version>1.6.10</version>
         </dependency>
     </dependencies>
 
