@@ -16,24 +16,20 @@ import ink.meodinger.htmlparser.internal.TokenStream.TokenType
  * Parser
  */
 fun parse(htmlText: String): HPage {
+    // Build a TokenStream
     val tokenStream = TokenStream(StringStream(htmlText))
 
-    fun Token.except(type: TokenType): Token {
+    fun Token.except(type: TokenType, value: String? = null): Token {
         return also {
-            if (it.type != type)
-                tokenStream.croak("Except $type, got $it")
-        }
-    }
-    fun Token.except(type: TokenType, value: String): Token {
-        return also {
-            if(it.type != type || it.value != value)
-                tokenStream.croak("Except $type:$value, got ${it.type}:${it.value}")
+            if(it.type != type || (value != null && it.value != value))
+                tokenStream.croak("Except $type:${value ?: '*'}, got ${it.type}:${it.value}")
         }
     }
 
     fun parseNode(): HNode {
         if (tokenStream.peek().isEOF()) return HNode.EOF
 
+        // Start tag head
         tokenStream.next().except(TokenType.SYMBOL, "<")
 
         // Check if is comment
@@ -71,6 +67,8 @@ fun parse(htmlText: String): HPage {
                             builder.append(tokenStream.next().value).append(tokenStream.next().value)
                         }
 
+                        // I won't add more ill-format fix like href=http://xxx.yyy anymore.
+
                         builder.toString()
                     }
                     else -> tokenStream.croak("Expected String or Identifier, got $valueToken")
@@ -83,6 +81,7 @@ fun parse(htmlText: String): HPage {
             nextToken = tokenStream.peek()
         }
 
+        // Start tag end
         if (isSingleTag) {
             if (tokenStream.peek().isSymbolSlash()) {
                 // If is SingleTag and actually has the slash, take it and return
@@ -116,13 +115,10 @@ fun parse(htmlText: String): HPage {
         nextToken = tokenStream.peek()
         while (true) {
             if (nextToken.isSymbolStart()) {
-                if (tokenStream.peek(2).isSymbolSlash()) {
-                    // The end tag
-                    break
+                if (tokenStream.peekChar() == '/') {
+                    break // The end tag
                 } else {
-                    val node = parseNode()
-                    if (node === HNode.EOF) break
-                    children.add(node)
+                    children.add(parseNode())
                 }
             } else if (nextToken.isText()) {
                 children.add(HNode.HText(tokenStream.next().value))
@@ -131,7 +127,7 @@ fun parse(htmlText: String): HPage {
             nextToken = tokenStream.peek()
         }
 
-        // End tag end
+        // End tag
         tokenStream.next().except(TokenType.SYMBOL, "<")
         tokenStream.next().except(TokenType.SYMBOL, "/")
         tokenStream.next().except(TokenType.IDENTIFIER, name)
@@ -142,16 +138,15 @@ fun parse(htmlText: String): HPage {
 
     // Read Document Type
     tokenStream.next().except(TokenType.SYMBOL, "<")
-    val type = HPage.HType.of(tokenStream.next().except(TokenType.COMMENT).value.split(" ")[1])
+    val type = tokenStream.next().except(TokenType.COMMENT).value
     tokenStream.next().except(TokenType.SYMBOL, ">")
 
     return HPage(parseNode(), type)
 }
 
 private val SingleTagList: Array<String> = arrayOf(
-    "br", "hr", "img", "input", "link",
-    "meta", "area", "base", "basefont", "param",
-    "col", "frame", "embed", "keygen", "source",
+    "br", "hr", "img", "input", "link", "meta", "area", "base",
+    "basefont", "param", "col", "frame", "embed", "keygen", "source",
     // Below are not documented but occurred tags
     "path"
 )

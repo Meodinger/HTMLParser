@@ -10,7 +10,7 @@ package ink.meodinger.htmlparser.internal
 /**
  * Token Stream
  */
-class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.Token> {
+class TokenStream(private val stringStream: StringStream) {
 
     /**
      * Token Type
@@ -74,21 +74,21 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
     private var markTextFlag: Boolean = false
     private var markCodeFlag: Boolean = false
 
-    override fun next(): Token {
+    fun peek(): Token {
+        return current ?: takeNext().also { current = it }
+    }
+    fun next(): Token {
         val token = current
         current = null
         return token ?: takeNext()
     }
-    override fun peek(): Token {
-        return current ?: takeNext().also { current = it }
-    }
-    override fun eof(): Boolean {
+    fun eof(): Boolean {
         return stringStream.eof()
     }
-    override fun croak(message: String): Nothing {
+    fun croak(message: String): Nothing {
         stringStream.croak(message)
     }
-    override fun mark() {
+    fun mark() {
         stringStream.mark()
         markCurrent = current
         markTextFlag = mayText
@@ -96,7 +96,7 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
 
         marked = true
     }
-    override fun reset() {
+    fun reset() {
         if (!marked) croak("Cannot reset when not marked")
 
         stringStream.reset()
@@ -104,7 +104,7 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
         mayText = markTextFlag
         inCode = markCodeFlag
     }
-    override fun unmarked() {
+    fun unmarked() {
         stringStream.unmarked()
         marked = false
     }
@@ -122,9 +122,17 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
         return token
     }
 
+    /**
+     * StringStream.peek()
+     * @return The char after the peeked token.
+     */
+    fun peekChar(): Char {
+        return stringStream.peek()
+    }
+
     private fun takeNext(): Token {
         readWhile(Companion::isWhitespace)
-        if (stringStream.eof()) return Token(TokenType.EOF, "")
+        if (eof()) return Token(TokenType.EOF, "")
 
         val char = stringStream.peek()
 
@@ -183,44 +191,28 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
     }
 
     private fun takeSymbol(): Token {
-        return Token(
-            TokenType.SYMBOL,
-            stringStream.next().toString()
-        )
+        return Token(TokenType.SYMBOL, stringStream.next().toString())
     }
     private fun takeComment(): Token {
         stringStream.next()
-        val isSimpleComment = stringStream.peek() == '-'
-
-        if (isSimpleComment) {
+        return if (stringStream.peek() == '-') {
             stringStream.next()
             stringStream.next()
             val content = readTo(stringStream.nextIndexOf("-->"))
             stringStream.next()
             stringStream.next()
-            return Token(
-                TokenType.COMMENT,
-                "!--$content--"
-            )
+
+            Token(TokenType.COMMENT, "!--$content--")
         } else {
-            return Token(
-                TokenType.COMMENT,
-                readWhile { it != '>' }
-            )
+            Token(TokenType.COMMENT, readWhile { it != '>' })
         }
     }
     private fun takeString(quote: Char): Token {
         stringStream.next()
-        return Token(
-            TokenType.STRING,
-            readString(quote)
-        )
+        return Token(TokenType.STRING, readString(quote))
     }
     private fun takeIdentifier(): Token {
-        return Token(
-            TokenType.IDENTIFIER,
-            readWhile(Companion::isIdentifier)
-        )
+        return Token(TokenType.IDENTIFIER, readWhile(Companion::isIdentifier))
     }
     private fun takeText(): Token {
         return if (inCode) {
@@ -245,15 +237,9 @@ class TokenStream(private val stringStream: StringStream) : Stream<TokenStream.T
                 }
             }
 
-            Token(
-                TokenType.TEXT,
-                builder.toString()
-            )
+            Token(TokenType.TEXT, builder.toString())
         } else {
-            Token(
-                TokenType.TEXT,
-                readWhile { it != '<' }
-            )
+            Token(TokenType.TEXT, readWhile { it != '<' })
         }
     }
 

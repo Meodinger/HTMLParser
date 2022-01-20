@@ -17,10 +17,10 @@ open class HNode(type: String, attributes: Map<String, String> = emptyMap(), chi
     }
 
     class HText(val text: String) : HNode("PlainText") {
-        override fun toString(): String = "PlainText(\"$text\")"
+        override fun toString(): String = "PlainText($text)"
     }
     class HComment(val comment: String) : HNode("Comment") {
-        override fun toString(): String = "Comment(\"$comment\")"
+        override fun toString(): String = "Comment($comment)"
     }
 
     val nodeType: String = type

@@ -9,7 +9,7 @@ package ink.meodinger.htmlparser.internal
 /**
  * String Char Stream
  */
-class StringStream(string: String) : Stream<Char> {
+class StringStream(string: String) {
 
     val array: CharArray = string.toCharArray()
     val size = array.size
@@ -24,9 +24,13 @@ class StringStream(string: String) : Stream<Char> {
     private var markR: Int = 0
     private var markC: Int = 0
 
-    override fun next(): Char {
+    fun peek(): Char {
         if (eof()) croak("EOF")
-        val char = array[pointer++]
+        return array[pointer]
+    }
+
+    fun next(): Char {
+        val char = peek()
 
         if (char == '\n') {
             row++
@@ -34,25 +38,21 @@ class StringStream(string: String) : Stream<Char> {
         } else {
             col++
         }
+        pointer++
 
         return char
     }
 
-    override fun peek(): Char {
-        if (eof()) croak("EOF")
-        return array[pointer]
-    }
-
-    override fun eof(): Boolean {
+    fun eof(): Boolean {
         return pointer == size
     }
 
-    override fun croak(message: String): Nothing {
+    fun croak(message: String): Nothing {
         val char = array[pointer - 1]
         throw IllegalStateException("[$row:$col]('$char',${char.code}) $message")
     }
 
-    override fun mark() {
+    fun mark() {
         markP = pointer
         markR = row
         markC = col
@@ -60,7 +60,7 @@ class StringStream(string: String) : Stream<Char> {
         marked = true
     }
 
-    override fun reset() {
+    fun reset() {
         if (!marked) croak("Cannot reset when not marked")
 
         pointer = markP
@@ -68,26 +68,26 @@ class StringStream(string: String) : Stream<Char> {
         col = markC
     }
 
-    override fun unmarked() {
+    fun unmarked() {
         marked = false
     }
 
     /**
-     * Return this::count if not found
+     * Find the first index of the given char
+     * @return this::size if not found
      */
     fun nextIndexOf(char: Char, from: Int = pointer): Int {
         var index = from
         while (index < size && array[index] != char) index++
         return index
     }
-
     /**
-     * Return this::count if not found
+     * Find the first index of the given CharSequence
+     * @return this::size if not found
      */
-    fun nextIndexOf(string: String, from: Int = pointer): Int {
-        val charArray = string.toCharArray()
-        val count = charArray.size
-        val head = charArray[0]
+    fun nextIndexOf(sequence: CharSequence, from: Int = pointer): Int {
+        val count = sequence.length
+        val head = sequence[0]
         var index = from
 
         outer@ while (index < size) {
@@ -96,7 +96,7 @@ class StringStream(string: String) : Stream<Char> {
 
             var i = -1
             while (++i < count) {
-                if (array[index + i] != charArray[i]) {
+                if (array[index + i] != sequence[i]) {
                     index += i
                     continue@outer
                 }

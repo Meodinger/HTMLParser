@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package ink.meodinger.htmlparser
 
 
@@ -10,24 +12,7 @@ package ink.meodinger.htmlparser
 /**
  * HTML Page, with html as HNode
  */
-class HPage(
-    val html: HNode,
-    val type: HType = HType.HTML
-) {
-
-    enum class HType(private val type: String) {
-        HTML("HTML"),
-        XHTML("XHTML");
-
-        companion object {
-            fun of(type: String): HType = when(type.uppercase()) {
-                HTML.type -> HTML
-                XHTML.type -> XHTML
-                else -> throw IllegalArgumentException("Invalid type")
-            }
-        }
-
-    }
+class HPage(val html: HNode, val type: String = "!DOCTYPE HTML") {
 
     val lang: String get() = html.attributes.getOrElse("lang") { "en" }
 

@@ -11,18 +11,18 @@ import java.util.*
  */
 
 fun main() {
-    val connection = URL("https://nekodict.com/words?q=%E8%8D%89").openConnection()
-    connection.connect()
-    val text = connection.inputStream.reader(StandardCharsets.UTF_8).readText()
+    // val connection = URL("https://nekodict.com/words?q=%E8%8D%89").openConnection()
+    // connection.connect()
+    // val text = connection.inputStream.reader(StandardCharsets.UTF_8).readText()
 
-    /*
+
     val connection = URL("http://www.fhdq.net/bd/44.html").openConnection()
     connection.connect()
     val text = connection.inputStream.reader(StandardCharsets.UTF_8).readText()
         .replace('\uFEFF', ' ')
         .replace("=http://www.fhdq.net", "=\"\"") // error
         .replace("<span>特殊符号</span>", "<span>\"</span>")
-     */
+
 
     // println(text)
 
