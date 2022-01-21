@@ -14,6 +14,9 @@ package ink.meodinger.htmlparser
  */
 class HPage(val html: HNode, val type: String = "!DOCTYPE HTML") {
 
+    /**
+     * The lang attribute of <html>, "en" as default
+     */
     val lang: String get() = html.attributes.getOrElse("lang") { "en" }
 
     val head: HNode get() = html.children[0]

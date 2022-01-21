@@ -201,9 +201,10 @@ class TokenStream(private val stringStream: StringStream) {
             val content = readTo(stringStream.nextIndexOf("-->"))
             stringStream.next()
             stringStream.next()
-
+            // Common comment
             Token(TokenType.COMMENT, "!--$content--")
         } else {
+            // Document type, not '>' in this comment
             Token(TokenType.COMMENT, readWhile { it != '>' })
         }
     }
@@ -219,7 +220,10 @@ class TokenStream(private val stringStream: StringStream) {
             val builder = StringBuilder()
 
             while (true) {
-                // NOTE: Find a better way
+                /* NOTE: Find a better way
+                 * We treat all <script> or <style> text as
+                 * an array of plain text and string
+                 */
                 val index0 = stringStream.nextIndexOf("</")
                 val index1 = stringStream.nextIndexOf('\"')
                 val index2 = stringStream.nextIndexOf('\'')
