@@ -12,7 +12,7 @@ package ink.meodinger.htmlparser.internal
 class StringStream(string: String) {
 
     val array: CharArray = string.toCharArray()
-    val size = array.size
+    val size: Int = array.size
     var pointer: Int = 0
         private set
 
@@ -61,7 +61,7 @@ class StringStream(string: String) {
     }
 
     fun reset() {
-        if (!marked) croak("Cannot reset when not marked")
+        if (!marked) croak("StringStream cannot reset when not marked")
 
         pointer = markP
         row = markR
@@ -106,7 +106,5 @@ class StringStream(string: String) {
 
         return size
     }
-
-    override fun toString(): String = "[$row:$col](${array[pointer]})"
 
 }

@@ -97,7 +97,7 @@ class TokenStream(private val stringStream: StringStream) {
         marked = true
     }
     fun reset() {
-        if (!marked) croak("Cannot reset when not marked")
+        if (!marked) croak("TokenStream cannot be reset when not marked")
 
         stringStream.reset()
         current = markCurrent
@@ -109,8 +109,11 @@ class TokenStream(private val stringStream: StringStream) {
         marked = false
     }
 
+    /**
+     * Peek num more Token
+     */
     fun peek(num: Int) : Token {
-        if (num <= 0) throw IllegalArgumentException("Should bigger than 0")
+        if (num <= 0) throw IllegalArgumentException("Num should bigger than 0")
         if (num == 1) return peek()
 
         mark()
@@ -169,17 +172,17 @@ class TokenStream(private val stringStream: StringStream) {
         return builder.toString()
     }
     private fun readString(quote: Char): String {
-        var transiting = false
+        var escaping = false
         val builder = StringBuilder()
 
         while (!stringStream.eof()) {
             val char = stringStream.next()
-            if (transiting) {
+            if (escaping) {
                 builder.append(char)
-                transiting = false
+                escaping = false
             } else if (char == '\\') {
                 builder.append('\\')
-                transiting = true
+                escaping = true
             } else if (char == quote) {
                 break
             } else {
