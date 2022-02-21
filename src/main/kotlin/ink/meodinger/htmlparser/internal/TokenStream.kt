@@ -21,6 +21,11 @@ class TokenStream(private val stringStream: StringStream) {
      * Token
      */
     data class Token(val type: TokenType, val value: String) {
+
+        companion object {
+            val EOF: Token = Token(TokenType.EOF, "")
+        }
+
         fun isEOF(): Boolean = type == TokenType.EOF
         fun isText(): Boolean = type == TokenType.TEXT
         fun isSymbol(): Boolean = type == TokenType.SYMBOL
@@ -45,7 +50,7 @@ class TokenStream(private val stringStream: StringStream) {
             addAll('A'..'Z')
             addAll('0'..'9')
         }.toCharArray()
-        private val Whitespaces: CharArray = charArrayOf(' ', '\n', '\t', '\r', '\uFEFF')
+        private val Whitespaces: CharArray = charArrayOf(' ', '\n', '\t', '\r', '\uFEFF', '\u3000', '\u00A0')
         private val Symbols: CharArray = charArrayOf('=', '<', '>', '/')
 
         private fun isCommentStart(char: Char): Boolean = CommentHeads.contains(char)
@@ -135,7 +140,7 @@ class TokenStream(private val stringStream: StringStream) {
 
     private fun takeNext(): Token {
         readWhile(Companion::isWhitespace)
-        if (eof()) return Token(TokenType.EOF, "")
+        if (eof()) return Token.EOF
 
         val char = stringStream.peek()
 

@@ -67,7 +67,7 @@ fun parse(htmlText: String): HPage {
                             builder.append(tokenStream.next().value).append(tokenStream.next().value)
                         }
 
-                        // I won't add more ill-format fix like href=http://xxx.yyy anymore.
+                        // I won't add more ill-format fix like href=http://xxx.yyy.
 
                         builder.toString()
                     }
