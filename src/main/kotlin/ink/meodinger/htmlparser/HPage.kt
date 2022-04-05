@@ -12,7 +12,7 @@ package ink.meodinger.htmlparser
 /**
  * HTML Page, with html as HNode
  */
-class HPage(val html: HNode, val type: String = "!DOCTYPE HTML") {
+class HPage(val html: HNode, val type: String = "DOCTYPE HTML") {
 
     /**
      * The lang attribute of <html>, "en" as default

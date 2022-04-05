@@ -10,7 +10,11 @@ package ink.meodinger.htmlparser
 /**
  * HTML node, all elements are nodes
  */
-open class HNode(val nodeType: String, attributes: Map<String, String> = emptyMap(), children: List<HNode> = emptyList()) {
+open class HNode(
+    val nodeType: String,
+    attributes: Map<String, String> = emptyMap(),
+    children: List<HNode> = emptyList()
+) {
 
     companion object {
         val EOF: HNode = HNode("EOF")

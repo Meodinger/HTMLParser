@@ -15,7 +15,7 @@ import ink.meodinger.htmlparser.internal.TokenStream.TokenType
 /**
  * Parser
  */
-fun parse(htmlText: String): HPage {
+fun parse(htmlText: String, trimComment: Boolean = true): HPage {
     // Build a TokenStream
     val tokenStream = TokenStream(StringStream(htmlText))
 
@@ -36,7 +36,8 @@ fun parse(htmlText: String): HPage {
         if (tokenStream.peek().isComment()) {
             val comment = HNode.HComment(tokenStream.next().value)
             tokenStream.next().except(TokenType.SYMBOL, ">")
-            return comment
+
+            return if (trimComment) parseNode() else comment
         }
 
         // Read tag name
